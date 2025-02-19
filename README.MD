@@ -36,21 +36,23 @@ Technical Architecture
 ### Components
 
 1. **QueueService**
-    * Manages message queue operations
-    * Handles message ordering and sequencing
-    * Processes acknowledgments
-    * Manages message retry logic
-    * Maintains delivery tracking
+   * Manages message queue operations
+   * Handles message ordering and sequencing
+   * Processes acknowledgments
+   * Manages message retry logic
+   * Maintains delivery tracking
+
 2. **DiscoveryService**
-    * Handles service instance registration
-    * Manages leader election process
-    * Monitors instance health
-    * Maintains service registry
+   * Handles service instance registration
+   * Manages leader election process
+   * Monitors instance health
+   * Maintains service registry
+
 3. **HAProxy Layer**
-    * Load balances incoming requests
-    * Maintains SSE connection persistence
-    * Performs health checks
-    * Handles failover routing
+   * Load balances incoming requests
+   * Maintains SSE connection persistence
+   * Performs health checks
+   * Handles failover routing
 
 ### Message Flow
 
@@ -77,9 +79,7 @@ Usage
 
 Key application properties (application.properties):
 
-properties
-
-`
+```properties
 # Server
 server.port=${SERVER_PORT:8080}
 server.compression.enabled=true
@@ -92,11 +92,12 @@ queue.keep-alive-interval=30000
 # Discovery
 discovery.check-interval=30000
 discovery.self-register-interval=10000
-`
+```
 
 HAProxy configuration (haproxy.cfg):
 
-`frontend http-in
+```
+frontend http-in
 bind *:80
 default_backend app_servers
 
@@ -104,32 +105,33 @@ backend app_servers
 balance source
 cookie SERVERID insert indirect nocache
 server app1 app1:8080 check
-server app2 app2:8080 check`
+server app2 app2:8080 check
+```
 
 ### Running the System
 
 1. Build the application:
-   `mvn clean package`
+```mvn clean package```
 
 2. Start the system:
-   `docker compose up --build`
+```docker compose up --build```
 
 3. Stop and cleanup:
-   `docker compose down -v`
+```docker compose down -v```
 
 ### API Endpoints
 
 1. Subscribe to Events:
-   `
+```
    # Using provided script
 ./subscribe.sh http://localhost:80
 
 # Direct curl command
 curl -N http://localhost:80/queue/subscribe
-`
+```
 
 2. Send Messages:
-   `
+```
    # Single message
 curl -X POST http://localhost:80/queue/add \
 -H "Content-Type: application/json" \
@@ -137,56 +139,64 @@ curl -X POST http://localhost:80/queue/add \
 
 # Load testing
 python parallelGenerator.py http://localhost:80/queue/add 1000 50
-`
+```
 
 3. Acknowledge Messages:
-   `
+```
    curl -X POST http://localhost:80/queue/ack/{messageId}?clientId={clientId}
-   `
+```
 
 Testing and Monitoring
 ----------------------
 
 ### Health Checks
 
-`
+
 # Instance health
+```
 curl http://localhost:80/queue/health
+```
 
 # HAProxy stats
+```
 curl http://localhost:8404
-`
+```
+
 
 ### Load Testing
 
-`# Generate parallel messages
+```# Generate parallel messages
 python parallelGenerator.py [URL] [MESSAGE_COUNT] [PARALLEL_REQUESTS]
 
 # Example
-python parallelGenerator.py http://localhost:80/queue/add 1000 50`
+python parallelGenerator.py http://localhost:80/queue/add 1000 50
+```
 
 Implementation Details
 ----------------------
 
 ### Message Ordering
 
-`
+```
 private final AtomicLong sequenceGenerator = new AtomicLong(0);
 private final PriorityBlockingQueue<QueueMessage> localQueue;
-`
+```
 
 ### Leader Election
 
-`
+```
 @Scheduled(fixedRateString = "${queue.leader-election-interval}")
 public void electLeader() {
 List<String> instances = discoveryService.getInstances();
+
 String currentLeader = instances.stream()
 .min(String::compareTo)
 .orElse(null);
+
 isLeader.set(selfUrl.equals(currentLeader));
 }
-`
+```
+
 Production Considerations
 -------------------------
 
